@@ -90,9 +90,18 @@ if __name__ == '__main__':
     #checkrange = 200
 
     #5th iteration, descending
-    start = 2133500
-    end = 100000
-    ngen = range(start,end,-1)
+    #start = 2133500
+    #end = 100000
+
+    #6th iteration, remote ascending
+    start = 100000
+    end =   1000000
+
+    #7th iteration, remote ascending
+    #start = 100001
+    #end =   1000001
+
+    ngen = range(start,end, 2)
 
     unassigned = s.mongoclient.tdcj.unassigned
     inmates = s.mongoclient.tdcj.inmates
