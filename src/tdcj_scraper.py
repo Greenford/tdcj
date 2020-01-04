@@ -98,12 +98,12 @@ if __name__ == '__main__':
     #end = 100000
 
     #6th iteration, remote ascending
-    start = 100000
-    end =   1000000
+    #start = 100000
+    #end =   1000000
 
     #7th iteration, remote ascending
-    #start = 100001
-    #end =   1000001
+    start = 100001
+    end =   1000001
 
     ngen = range(start,end, 2)
 
@@ -142,29 +142,4 @@ if __name__ == '__main__':
         else:
             break #while
         '''
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
