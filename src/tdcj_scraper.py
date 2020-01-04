@@ -1,4 +1,5 @@
 from selenium.webdriver import Chrome
+from selenium.webdriver.chrome.options import Options
 from pymongo import MongoClient
 import time, json
 import numpy as np
@@ -6,13 +7,16 @@ import pandas as pd
 from selenium.common.exceptions import NoSuchElementException, WebDriverException
 from pymongo.errors import DuplicateKeyError
 from datetime import datetime
+import os
 
 
 class Scraper:
     
-    def __init__(self):
-        wd_path = '/home/lapis/Documents/DSI/projects/tdcj/src/chromedriver'
-        self.driver = Chrome(wd_path)
+    def __init__(self, headless = True):
+        wd_path = f'{os.getcwd()}/src/chromedriver'
+        opt = Options()
+        opt.headless = headless
+        self.driver = Chrome(executable_path=wd_path, options=opt)
         self.mongoclient = MongoClient('localhost', 27017)
         #take 1
         #self.nlist=np.concatenate((np.arange(2500000),np.arange(99900000, 100000000)), axis=None)
