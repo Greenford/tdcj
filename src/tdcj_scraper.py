@@ -116,27 +116,23 @@ if __name__ == '__main__':
     
     #10-14th iterations
     inc = -5
-    start = 2109955
+    #start = 2109955
     end =   1900000
 
     #10
-    #no change
+    start=2107280
 
     #11
-    #start += 1
-    #end += 1
+    #start = 2108556
 
     #12
-    #start += 2
-    #end += 2
+    #start = 2100712
 
     #13
-    #start += 3
-    #end += 3
+    #start 2106233
 
     #14 
-    #start += 4
-    #end += 4
+    #start = 2106899
 
     ngen = range(start, end, inc)
 
