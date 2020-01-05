@@ -102,10 +102,43 @@ if __name__ == '__main__':
     #end =   1000000
 
     #7th iteration, remote ascending
-    start = 100001
-    end =   1000001
+    #start = 100001
+    #end =   1000001
 
-    ngen = range(start,end, 2)
+    #8th iteration descending, continuing 5th iteration
+    #start = 2123441
+    #end   = 1000000
+
+    #9th iteration ascending, continuing 4th iteration
+    #start = 2286080
+    #end   = 2500000
+    #inc   = 1
+    
+    #10-14th iterations
+    inc = -5
+    start = 2109955
+    end =   1900000
+
+    #10
+    #no change
+
+    #11
+    #start += 1
+    #end += 1
+
+    #12
+    #start += 2
+    #end += 2
+
+    #13
+    #start += 3
+    #end += 3
+
+    #14 
+    #start += 4
+    #end += 4
+
+    ngen = range(start, end, inc)
 
     unassigned = s.mongoclient.tdcj.unassigned
     inmates = s.mongoclient.tdcj.inmates
