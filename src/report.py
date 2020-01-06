@@ -17,8 +17,8 @@ class TDCJ_report:
         idata = self.inmate_nums 
 
         for pair in digits:
-            min_result = idata[ (idata - (idata//10)*10 == pair[0])\
-                | (idata - (idata//10)*10 == pair[1]) ]
+            min_result = np.min(idata[ (idata - (idata//10)*10 == pair[0])\
+                | (idata - (idata//10)*10 == pair[1]) ])
             print(f'Min result for inmate TDCJ numbers ending with {pair}:')
             print(f'    {min_result}')
     
