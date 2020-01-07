@@ -25,4 +25,7 @@ class TDCJ_report:
     def num_scraped(self):
         print(f'{len(self.inmate_nums)} valid TDCJ numbers scraped')
         print(f'{len(self.unassigned_nums)} unassigned TDCJ numbers scraped')
-                
+    
+if __name__ == '__main__':
+    r = TDCJ_report()
+    report.num_scraped()
