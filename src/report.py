@@ -28,4 +28,4 @@ class TDCJ_report:
     
 if __name__ == '__main__':
     r = TDCJ_report()
-    report.num_scraped()
+    r.num_scraped()
