@@ -134,7 +134,7 @@ if __name__ == '__main__':
     n=100
     pmode = 2
 
-    bounds = s.db.admin.find({'_id':scraper_instance}).next()['bounds']
+    bounds = s.db.admin.find({'_id':scraper_instance}, {'bounds':'true'}).next()['bounds']
     while len(bounds) > 0:
         s.db.admin.update_one({'_id':scraper_instance}, {'$pop':{'bounds':-1}})
         
@@ -147,5 +147,5 @@ if __name__ == '__main__':
             s.scrape_range_to_db(range(start+i*segment_length,\
                 start+(i+1)*segment_length, inc), pmode)
             print(f'{100*(i+1)/n}% finished with segment [{start},{end})')
-        bounds = s.db.admin.find({'_id':scraper_instance}).next()['bounds']
+        bounds = s.db.admin.find({'_id':scraper_instance}, {'bounds', 'true'}).next()['bounds']
 
