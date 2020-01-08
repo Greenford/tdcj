@@ -102,31 +102,31 @@ class Scraper:
         entry['_id'] = entry.pop('TDCJ Number')
         return entry
 
-def scrape_range_to_db(self, scrape_range, print_mode = 0):
-    unassigned_count = 0
-    for tdcj_num in scrape_range:
-        try:
-            #scrape single number
-            datum = self.scrape_inmate(tdcj_num)
+    def scrape_range_to_db(self, scrape_range, print_mode = 0):
+        unassigned_count = 0
+        for tdcj_num in scrape_range:
+            try:
+                #scrape single number
+                datum = self.scrape_inmate(tdcj_num)
 
-            #for invalid tdcj numbers
-            if datum == None:
-                self.db.unassigned.insert_one({'_id':tdcj_num})
-                unassigned_count += 1
+                #for invalid tdcj numbers
+                if datum == None:
+                    self.db.unassigned.insert_one({'_id':tdcj_num})
+                    unassigned_count += 1
 
-            #for valid tdcj numbers
-            else:
-                self.db.inmates.insert_one(d)
-                if print_mode >= 2:
-                    print(f'{i} added to inmates')
-                    print(f'         {unassigned_count} invalid TDCJ numbers prev')
-                unassigned_count = 0
-        
-        #TDCJ number already in mongo
-        except DuplicateKeyError:
-            if print_mode >= 1:
-                print(f'Duplicate tdcj number ignored: {i}')
-            continue
+                #for valid tdcj numbers
+                else:
+                    self.db.inmates.insert_one(d)
+                    if print_mode >= 2:
+                        print(f'{i} added to inmates')
+                        print(f'         {unassigned_count} invalid TDCJ numbers prev')
+                    unassigned_count = 0
+            
+            #TDCJ number already in mongo
+            except DuplicateKeyError:
+                if print_mode >= 1:
+                    print(f'Duplicate tdcj number ignored: {i}')
+                continue
 
 if __name__ == '__main__':
     s = Scraper()
