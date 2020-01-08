@@ -141,13 +141,14 @@ if __name__ == '__main__':
         segment = bounds[0]
         start = int(segment[0])
         end = int(segment[1])
-        inc = -1 if start > end else 1
-        subsegment_length = abs(start-end)//n
-        if(subsegment_length*n != abs(start-end)):
+        if start > end:
+            start, end = end, start
+        subsegment_length = (end-start)//n
+        if(subsegment_length*n != (end-start)):
             raise ValueError(f'invalid range {segment} not divisible by {n}')
         for i in range(n):
             s.scrape_range_to_db(range(start+i*subsegment_length,\
-                start+(i+1)*subsegment_length, inc), pmode)
+                start+(i+1)*subsegment_length), pmode)
             print(f'{100*(i+1)/n}% finished with segment [{start},{end})')
         bounds = s.db.admin.find({'_id':scraper_instance}, {'bounds', 'true'}).next()['bounds']
 
