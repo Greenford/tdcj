@@ -83,7 +83,7 @@ class Scraper:
         entry = dict()
         admin_info = self.driver.find_element_by_id('content_right')\
             .find_elements_by_tag_name('p')[1]\
-            .text
+            .text\
             .split('\n\n')
         for row in map(lambda s: s.split(':'),admin_info):
             entry[row[0].strip()] = row[1].strip()
