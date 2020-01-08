@@ -144,8 +144,8 @@ if __name__ == '__main__':
         inc = -1 if start > end else 1
         subsegment_length = abs(start-end)/n
         for i in range(n):
-            s.scrape_range_to_db(range(start+i*segment_length,\
-                start+(i+1)*segment_length, inc), pmode)
+            s.scrape_range_to_db(range(start+i*subsegment_length,\
+                start+(i+1)*subsegment_length, inc), pmode)
             print(f'{100*(i+1)/n}% finished with segment [{start},{end})')
         bounds = s.db.admin.find({'_id':scraper_instance}, {'bounds', 'true'}).next()['bounds']
 
