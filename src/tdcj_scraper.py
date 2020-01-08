@@ -131,8 +131,8 @@ class Scraper:
 if __name__ == '__main__':
     s = Scraper()
     scraper_instance = sys.argv[1]
-    n=100
-    pmode = 2
+    n=25
+    pmode = 1
 
     bounds = s.db.admin.find({'_id':scraper_instance}, {'bounds':'true'}).next()['bounds']
     while len(bounds) > 0:
