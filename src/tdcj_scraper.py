@@ -1,7 +1,7 @@
 from selenium.webdriver import Chrome
 from selenium.webdriver.chrome.options import Options
 from pymongo import MongoClient
-import time, json, os
+import time, json, os, sys
 import numpy as np
 import pandas as pd
 from selenium.common.exceptions import NoSuchElementException, WebDriverException
@@ -130,7 +130,7 @@ def scrape_range_to_db(self, scrape_range, print_mode = 0):
 
 if __name__ == '__main__':
     s = Scraper()
-    scraper_instance = argv[1]
+    scraper_instance = sys.argv[1]
     n=100
     pmode = 1
 
