@@ -142,7 +142,9 @@ if __name__ == '__main__':
         start = int(segment[0])
         end = int(segment[1])
         inc = -1 if start > end else 1
-        subsegment_length = abs(start-end)/n
+        subsegment_length = abs(start-end)//n
+        if(subsegment_length*n != abs(start-end)):
+            raise ValueError(f'invalid range {segment} not divisible by {n}'
         for i in range(n):
             s.scrape_range_to_db(range(start+i*subsegment_length,\
                 start+(i+1)*subsegment_length, inc), pmode)
