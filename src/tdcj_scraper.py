@@ -118,7 +118,7 @@ class Scraper:
                 else:
                     self.db.inmates.insert_one(datum)
                     if print_mode >= 2:
-                        print(f'{i} added to inmates')
+                        print(f'{tdcj_num} added to inmates')
                         print(f'         {unassigned_count} invalid TDCJ numbers prev')
                     unassigned_count = 0
             
