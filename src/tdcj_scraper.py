@@ -139,8 +139,8 @@ if __name__ == '__main__':
         s.db.admin.update_one({'_id':scraper_instance}, {'$pop':{'bounds':-1}})
         
         segment = bounds[0]
-        start = segment[0]
-        end = segment[1]
+        start = int(segment[0])
+        end = int(segment[1])
         inc = -1 if start > end else 1
         subsegment_length = abs(start-end)/n
         for i in range(n):
