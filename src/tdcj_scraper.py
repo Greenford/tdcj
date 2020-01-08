@@ -130,11 +130,22 @@ def scrape_range_to_db(self, scrape_range, print_mode = 0):
 
 if __name__ == '__main__':
     s = Scraper()
+    scraper_instance = argv[1]
+    n=100
+    pmode = 1
 
-    start = int(sys.argv[1])
-    end = int(sys.argv[2])
-    inc = int(sys.argv[3])
-    pmode = int(sys.argv[4])
-
-    s.scrape_range_to_db(range(start, end, inc), pmode)
+    bounds = s.db.admin.find({'_id':scraper_instance}).next()['bounds']
+    while len(bounds) > 0:
+        s.db.admin.update_one({'_id':scraper_instance}, {'$pop':{'bounds':-1}})
+        
+        segment = bounds[0]
+        start = segment[0]
+        end = segment[1]
+        inc = -1 if start > end else 1
+        subsegment_length = abs(start-end)/n
+        for i in range(n):
+            s.scrape_range_to_db(range(start+i*segment_length,\
+                start+(i+1)*segment_length, inc), pmode)
+            print(f'{100*(i+1)/n}% finished with segment [{start},{end})')
+        bounds = s.db.admin.find({'_id':scraper_instance},{'bounds':true}).next()[0]
 
