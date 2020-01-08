@@ -125,7 +125,7 @@ class Scraper:
             #TDCJ number already in mongo
             except DuplicateKeyError:
                 if print_mode >= 1:
-                    print(f'Duplicate tdcj number ignored: {i}')
+                    print(f'Duplicate tdcj number ignored: {tdcj_num}')
                 continue
 
 if __name__ == '__main__':
