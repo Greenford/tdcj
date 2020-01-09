@@ -131,11 +131,6 @@ class Scraper:
 if __name__ == '__main__':
     s = Scraper()
 
-    start = int(sys.argv[1])
-    end = int(sys.argv[2])
-    pmode = 2
-    s.scrape_range_to_db(range(start, end), 2)
-    '''
     scraper_instance = sys.argv[1]
     n=25
     pmode = 1
@@ -157,5 +152,4 @@ if __name__ == '__main__':
                 start+(i+1)*subsegment_length), pmode)
             print(f'{100*(i+1)/n}% finished with segment [{start},{end})')
         bounds = s.db.admin.find({'_id':scraper_instance}, {'bounds', 'true'}).next()['bounds']
-    '''
 
