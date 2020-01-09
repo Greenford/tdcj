@@ -278,7 +278,7 @@ def split_msd_cat(msd):
     """
     mode = 1
     if msd.endswith('CUMULATIVE OFFENSES'):
-        cumulative = -1
+        mode = -1
         msd = msd[:-19].strip()
     if msd == 'LIFE SENTENCE':
         return (None, 2*mode)
