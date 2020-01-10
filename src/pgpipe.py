@@ -28,7 +28,7 @@ def run_pipe(print_count=1000):
     results = inmates.find({'_id': {'$exists':'true'}})
 
     #initalize postgres connection
-    conn = pg2.connect(dbname='tdcj', host='localhost', port=5435, user='postgres')
+    conn = pg2.connect(dbname='tdcj', host='localhost', port=5432, user='postgres')
     cur = conn.cursor()
     
     #insert every inmate into the postgres DB
@@ -50,7 +50,7 @@ def _reset_tdcj_pgdb():
     """
     Deletes and recreates the tdcj SQL database.
     """
-    conn = pg2.connect(host='localhost', port=5435, user='postgres')
+    conn = pg2.connect(host='localhost', port=5432, user='postgres')
     conn.set_session(autocommit=True)
     cur = conn.cursor()
 
@@ -65,7 +65,7 @@ def _create_tables():
     """
     Creates the 3 tables for the postgres DB.
     """
-    conn = pg2.connect(dbname='tdcj', host='localhost', port=5435, user='postgres')
+    conn = pg2.connect(dbname='tdcj', host='localhost', port=5432, user='postgres')
     cur = conn.cursor()
 
     commands = (
@@ -95,7 +95,7 @@ def _create_tables():
             sentence_date DATE NOT NULL,
             county VARCHAR(13) NOT NULL,
             case_number VARCHAR(18),
-            sentence INTERVAL NOT NULL,
+            sentence INTEGER NOT NULL,
             PRIMARY KEY (tdcj_number, offense_number),
             FOREIGN KEY (tdcj_number)
                 REFERENCES offenders (tdcj_number)
@@ -157,7 +157,7 @@ def prep_offender_data(entry):
     ]
     for offense in offenses:
         offense['tdcj_num'] = tdcj_num
-        offense['Sentence'] = sentence_str_to_timedelta(\
+        offense['Sentence'] = sentence_str_to_days_int(\
             offense.pop('Sentence (YY-MM-DD)'))
 
     return entry, offenses
@@ -297,7 +297,7 @@ def split_msd_cat(msd):
                 .with_traceback(sys.exc_info()[2])
         
 
-def sentence_str_to_timedelta(string):
+def sentence_str_to_days_int(string):
     """
     Turns two formats of sentence lengths into a timedelta object in order to 
     be cast as an INTERVAL type in the future.
@@ -310,10 +310,12 @@ def sentence_str_to_timedelta(string):
         timedelta object
     """
     if string.endswith('Days'):
-        return timedelta(days=int(string[:-4]))
+        return int(string[:-4])
     vals = [int(i) for i in string.split('-')]
-    return timedelta(weeks=vals[0]*52+vals[0]*4, days=vals[2])
+    return vals[0]*365 + vals[1]*30 + vals[2]
 
         
 if __name__ == '__main__':
+    _reset_tdcj_pgdb()
+    _create_tables()
     run_pipe()
