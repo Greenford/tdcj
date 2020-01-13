@@ -13,17 +13,25 @@ Null Hypothesis: The mean sentence date per crime is the same across every race.
 
 Alternate Hypothesis: The mean sentence date per crime is different for each race. 
 
+The significance level will be a standard 0.05. Because we're testing for 5 different crimes, we apply a Bonferroni correction so that the significance level is 0.01 each.
+
 ## Engineering
 ### Web Scraper
-The web scraper was made using Python and Selenium, and has had instances running on both my personal computer and on Amazon EC2 instances. I had the scrapers query the website by TDCJ number. 
+The web scraper was made using Python and Selenium, and has had instances running on both my personal computer and on Amazon EC2 instances. I had the scrapers query the website by TDCJ number. The data was stored in a MongoDB. 
 
 Starting with personal experience from my time at IBP, I believed TDCJ numbers to be assigned consecutively and ascending as the agency received new prisoners. I started with a guess of where possible TDCJ numbers were distributed, scraped random samples from the whole range for a short time, and then took the max TDCJ number and had scrapers spread out from there. The TDCJ numbers I've currently scraped are distributed as so:
-(image)
+
+![Image of Distribution of TDCJ Numbers](https://github.com/Greenford/tdcj/blob/master/images/TDCJnumdist.png)
+
 As of January 2019 I've only scraped 107k valid TDCJ numbers and expect at least 50k more numbers to be in the tail. Finding them will be slower than normal, as they are significanly more spread out and being those few who were sentenced to long stays. 
+
+### Analysis
+Data was then migrated to a PostreSQL database and then analyzed using a jupyter notbook with Pandas and Scipy. 
 
 ## Exploratory Data Analysis
 A histogram of the races below shows that the vast plurality of inmates are either white, hispanic, and black in order of population within TDCJ. 
-(image)
+
+![Image of Histogram of TDCJ Population by Race](https://github.com/Greenford/tdcj/blob/master/images/racedist.png)
 
 A separate grouping by crime was as follows: 
 
@@ -34,9 +42,33 @@ I applied two data transforms:
 1. Sentences above 100 years were reduced to 100 years. This is because prisoners enduring life sentences could have the numerical sentences recorded as 9999 years, 99 months, and 99 days, and this would skew the means significantly. I chose to reduce it to 100 years because I expect few prisoners to make it past 100 years, sadly, having some sense of the hardship of life in prison and the poor medical care provided. 
 
 2. The next I applied, and here I duplicated tests again, was to map different strings seeming to describe the same crime to the same string. 
-(image) 
-Tests on the left have not had this mapping applied, while tests on the right have had it. 
+
+![Image of Example synonym mappings](https://github.com/Greenford/tdcj/blob/master/images/synonyms.png) 
+ 
 
 ## Results
+Tests on the left have not had the second data transform applied, while tests on the right have.
+
+We can see that the results on the left are largely statistically significant, although different races are receiving longer sentences for different crimes, which is not in line with the behavior I anticipated, with one race (W) receiving consistently shorter sentences and the others receiving higher ones. 
+
+The results on the right (after the synonym mapping) show no significant difference in sentence lengths. Additionally, all the sentences are in the neighborhood of 7 years, even the crimes that in the left results had much shorter sentences. 
+
+![Image of Burglary of a Habitation Sentence Means](https://github.com/Greenford/tdcj/blob/master/images/Burg-H.png)
+
+![Image of Burglary of a Building Sentence Means](https://github.com/Greenford/tdcj/blob/master/images/2Burg-B.png)
+
+![Image of DWI Sentence Means](https://github.com/Greenford/tdcj/blob/master/images/2DWI.png)
+
+![Image of Possession of a Contraband Substance Sentence Means](https://github.com/Greenford/tdcj/blob/master/images/2Poss.png)
+
+![Image of Forgery Sentence Means](https://github.com/Greenford/tdcj/blob/master/images/2Forgery.png)
+
+## Discussion
+It's obvious that the original strings I was testing for are subsets of the family of synonym strings, but their nature as subsets is unclear. 
+
+Additionally, the right-results all being about 7 years in mean simply doesn't sound right. 
+
+For now, more analysis is needed. Racial discrimination at the sentencing level is neither proven to exist nor be absent. 
 
 ## Future Work
+In terms of investigating sentence lengths for racial discrimination, I can control for whether the inmates have been sentenced for cumulative crimes or sentenced for multiple crimes simulataneously. I can also see if there are differences by county or time period, as the above data covered the whole of Texas and inmates sentenced between 1966 to 2019. 
