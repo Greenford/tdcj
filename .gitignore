@@ -1,7 +1,6 @@
 *.ipynb
 .ipynb_checkpoints/
 data/
-images/
 __pycache__/
 chromedriver
 *.txt
