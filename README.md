@@ -1,8 +1,8 @@
 # TDCJ Inmate Scraping
 ## Background and Motivation
-The Texas Department of Criminal Justice is the state's prison agency, and Texas itself is single state in the US with the largest number of prisoners, having more than 150 thousand not counting the federal prisons and county jails. Having volunteered at the Inside Books Project (IBP), a books-to-prison project serving only inmates in Texas, I have a variety of interests in the lives of prisoners. 
+The Texas Department of Criminal Justice is the state's prison agency, and Texas itself is single state in the US with the largest number of prisoners, having more than 150 thousand not counting the federal prisons and county jails. Having volunteered at the Inside Books Project* (IBP), a books-to-prison project serving only inmates in Texas, I have a variety of interests in the lives of prisoners. 
 
-TDCJ Makes the individual data of prisoners available for anyone who knows their name or TDCJ ID number. I want to answer questions about the data as a whole. 
+TDCJ makes the individual data of prisoners publicly available [publicly available](offender.tdcj.texas.gov/OffenderSearch/). I want to answer questions about the data as a whole. 
 
 With this purpose, I've made a web scraper to capture all of the data on TDCJ inmates, and have done a sample analysis of the data. 
 
@@ -72,3 +72,5 @@ For now, more analysis is needed. Racial discrimination at the sentencing level 
 
 ## Future Work
 In terms of investigating sentence lengths for racial discrimination, I can control for whether the inmates have been sentenced for cumulative crimes or sentenced for multiple crimes simulataneously. I can also see if there are differences by county or time period, as the above data covered the whole of Texas and inmates sentenced between 1966 to 2019. 
+
+*[Inside Books Project](insidebooksproject.org)
