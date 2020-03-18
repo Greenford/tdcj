@@ -73,4 +73,5 @@ At this point I'd need to consult a subject matter expert in TDCJ coding to be a
 In terms of investigating sentence lengths for racial discrimination, I can control for whether the inmates have been sentenced for cumulative crimes or sentenced for multiple crimes simulataneously. I can also see if there are differences by county or time period, as the above data covered the whole of Texas and inmates sentenced between 1966 to 2019. 
 
 *[Inside Books Project](insidebooksproject.org)
+
 *Special thanks to Dan Murphy and Jonathan Starr of the Inside Books Project for their help.* 
