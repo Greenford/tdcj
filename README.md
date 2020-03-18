@@ -55,22 +55,22 @@ The results on the right (after the synonym mapping) show no significant differe
 
 ![Image of Burglary of a Habitation Sentence Means](https://github.com/Greenford/tdcj/blob/master/images/Burg-H.png)
 
-![Image of Burglary of a Building Sentence Means](https://github.com/Greenford/tdcj/blob/master/images/2Burg-B.png)
-
-![Image of DWI Sentence Means](https://github.com/Greenford/tdcj/blob/master/images/2DWI.png)
-
 ![Image of Possession of a Contraband Substance Sentence Means](https://github.com/Greenford/tdcj/blob/master/images/2Poss.png)
 
-![Image of Forgery Sentence Means](https://github.com/Greenford/tdcj/blob/master/images/2Forgery.png)
+See the rest of the images in the [images folder](/images)
 
 ## Discussion
-It's obvious that the original strings I was testing for are subsets of the family of synonym strings, but their nature as subsets is unclear. 
+It's obvious that the original strings I was testing for are subsets of the family of synonym strings (and the largest subsets at that), but the differences between subsets is unclear. 
 
-Additionally, the right-results all being about 7 years in mean simply doesn't sound right. 
+Furthermore, the post-synonym-transform results all being about 7 years in mean simply doesn't seem right. Possible confounding factors include:
+1. sentences for the same crimes may vary with concomitant crimes offenders are tried for simultaneously.
+2. sentences for the same crimes may vary with the number of repeat offenses. 
+3. in addition to being semantic indicators, the mapped synonyms may be symbolic indicators for different crimes. 
 
-For now, more analysis is needed. Racial discrimination at the sentencing level is neither proven to exist nor be absent. 
+At this point I'd need to consult a subject matter expert in TDCJ coding to be able to make sense of the findings. 
 
 ## Future Work
 In terms of investigating sentence lengths for racial discrimination, I can control for whether the inmates have been sentenced for cumulative crimes or sentenced for multiple crimes simulataneously. I can also see if there are differences by county or time period, as the above data covered the whole of Texas and inmates sentenced between 1966 to 2019. 
 
 *[Inside Books Project](insidebooksproject.org)
+*Special thanks to Dan Murphy and Jonathan Starr of the Inside Books Project for their help.* 
