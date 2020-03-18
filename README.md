@@ -74,4 +74,4 @@ In terms of investigating sentence lengths for racial discrimination, I can cont
 
 *[Inside Books Project](insidebooksproject.org)
 
-*Special thanks to Dan Murphy and Jonathan Starr of the Inside Books Project for their help.* 
+*Special thanks to Dan Murphy and Jonathan Starr of the Inside Books Project for sharing their knowledge of TDCJ.* 
