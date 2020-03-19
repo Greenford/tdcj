@@ -1,4 +1,4 @@
-# TDCJ Inmate Scraping
+# Investigating Sentence Length Disparity in the Texas Prison System
 ## Background and Motivation
 The Texas Department of Criminal Justice is the state's prison agency, and Texas itself is single state in the US with the largest number of prisoners, having more than 150 thousand not counting the federal prisons and county jails. Having volunteered at the Inside Books Project* (IBP), a books-to-prison project serving only inmates in Texas, I have a variety of interests in the lives of prisoners. 
 
