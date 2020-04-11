@@ -8,23 +8,90 @@ from selenium.common.exceptions import NoSuchElementException, WebDriverExceptio
 from pymongo.errors import DuplicateKeyError
 from datetime import datetime
 
-
 class Scraper:
-    def __init__(self, headless=True, sleeptime=1, pmode=0):
+    def __init__(self, headless, workersleeptime, mgrsleeptime, pmode, numworkers, batchsize):
         """
         Constructs the scraper: starts a webdriver instance 
         and connects to the mongoDB
 
         Args:
-            headless: boolean controlling if the webdriver runs
+            headless (bool): controlling if the webdriver runs
+            sleeptime (float): worker sleep time in seconds
+            pmode (int): print mode. Higher the number, the more is printed
+        """
+        # TODO headless?
+        self.db = MongoClient("localhost", 27017).tdcj
+        self.mgrsleeptime = mgrsleeptime
+        self.pmode = pmode
+        self.batchsize = batchsize 
+        self.q = asyncio.Queue()
+        self.workers = [ScraperWorker(self.q, self.db, headless, workersleeptime, pmode) for i in range(numworkers)]
+
+    async def scrape(self):
+        workloops = [asyncio.create_task(w.work()) for w in self.workers]
+        await self.tailmanager()
+        await asyncio.gather(*workloops)
+
+        for wloop in workloops:
+            wloop.cancel()
+
+    async def tailmanager(self):
+        """
+        Populates the queue to scrape with unchecked potential TDCJ numbers in 
+        descending order. 
+        """
+        tailmax = int(self.db.admin.find_one({"_id": "tail"})["value"])
+        while tailmax >= 99999 + self.batchsize:
+            if self.q.qsize() < self.batchsize:
+                for i in range(tailmax, tailmax - self.batchsize, -1):
+                    self.q.put_nowait(i)
+                tailmax -= self.batchsize
+                self.db.admin.update_one({"_id": "tail"}, {"$set": {"value": tailmax}})
+            await asyncio.sleep(self.mgrsleeptime)
+
+    async def deathrowMGR(self):
+        """
+        Populates the queue with active DR tdcj numbers.
+        """
+        pass
+
+    async def headMGR(self):
+        """
+        Populates the queue with potential recently-assigned tdcj numbers.
+        """
+        pass
+    
+    async def recidivismMGR(self):
+        """
+        Populates the queue with confirmed unassigned tdcj numbers.
+        """
+        pass
+
+    async def releaseMGR(self):
+        """
+        Populates the queue with potentially released or paroled tdcj numbers.
+        """
+        pass
+
+class ScraperWorker: 
+    def __init__(self, q, db, headless, sleeptime, pmode):
+        """
+        Constructs the worker with own webdriver. 
+
+        Args:
+            headless (bool): controlling if the webdriver runs
+            sleeptime (float): worker sleep time in seconds
+            pmode (int): print mode. Higher the number, the more is printed
         """
         wd_path = f"{os.getcwd()}/src/chromedriver"
         opt = Options()
         opt.headless = headless
+        
         self.driver = Chrome(executable_path=wd_path, options=opt)
-        self.db = MongoClient("localhost", 27017).tdcj
-        self.sleeptime = sleeptime
+        self.db = db
         self.pmode = pmode
+        self.sleeptime = sleeptime
+        self.q = q
 
     async def scrape_inmate(self, tdcjnum):
         """
@@ -87,7 +154,7 @@ class Scraper:
         entry["_id"] = entry.pop("TDCJ Number")
         return entry
 
-    async def store_idata(self, idata, print_mode=0):
+    async def store_idata(self, idata):
         """
         Asyncronously inserts the scraped data of an inmate into the mongodb.
 
@@ -101,20 +168,22 @@ class Scraper:
             # for invalid tdcj numbers
             if type(idata) == int:
                 self.db.unassigned.insert_one({"_id": idata})
-                if print_mode >= 2:
+                if self.pmode >= 2:
                     print(f"{idata} added to unassigned.")
             # for valid tdcj numbers
             else:
                 self.db.inmates.insert_one(idata)
-                if print_mode >= 2:
+                if self.pmode >= 2:
                     print(f"{idata['_id']} added to inmates")
 
         # TDCJ number already in mongo
         except DuplicateKeyError:
-            if print_mode >= 1:
+            if self.pmode >= 1:
+                if type(idata) == dict:
+                    idata = idata['_id']
                 print(f"Duplicate tdcj number ignored: {idata}")
 
-    async def worker(self, q):
+    async def work(self):
         """
         Worker co-routine for scraping. Scrapes tdcj numbers from queue 
         populated by manager.
@@ -124,52 +193,24 @@ class Scraper:
 
         Returns: None. Ends when the queue is empty.
         """
-        while not q.empty():
-            tdcjnum = await q.get()
+        while not self.q.empty():
+            tdcjnum = await self.q.get()
             idata = await self.scrape_inmate(tdcjnum)
-            await self.store_idata(idata, self.pmode)
-            q.task_done()
-
-    async def tailmanager(self, q, sleeptime, batchsize):
-        """
-        Populates the queue to scrape with unchecked potential TDCJ numbers in 
-        descending order. 
-
-        Args:
-            q (asyncio.Queue): queue of tdcj numbers to scrape
-            sleeptime (float): sleep time for the manager
-            batchsize (int): how many tdcj numbers to add to the queue at once
-        """
-        tailmax = int(self.db.admin.find_one({"_id": "tail"})["value"])
-        while tailmax >= 99999 + batchsize:
-            if q.qsize() < batchsize:
-                for i in range(tailmax, tailmax - batchsize, -1):
-                    q.put_nowait(i)
-                tailmax -= batchsize
-                self.db.admin.update_one({"_id": "tail"}, {"$set": {"value": tailmax}})
-            await asyncio.sleep(sleeptime)
-
-
-async def main(workersleeptime=1, numworkers=2, mgrsleeptime=5, pmode=0, batchsize=50):
-    s = Scraper(sleeptime=workersleeptime, pmode=pmode)
-    q = asyncio.Queue()
-    workers = [asyncio.create_task(s.worker(q)) for i in range(numworkers)]
-    await s.tailmanager(q, mgrsleeptime, batchsize)
-    await asyncio.gather(*workers)
-
-    for w in workers:
-        w.cancel()
-
+            await self.store_idata(idata)
+            self.q.task_done()
 
 if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-w", "--workersleeptime", type=float)
-    parser.add_argument("-m", "--mgrsleeptime", type=float)
-    parser.add_argument("-p", "--pmode", type=int)
-    parser.add_argument("-b", "--batchsize", type=int)
-    parser.add_argument("-n", "--numworkers", type=int)
+    parser.add_argument("-w", "--workersleeptime", type=float, default=1.5)
+    parser.add_argument("-m", "--mgrsleeptime", type=float, default=5)
+    parser.add_argument("-p", "--pmode", type=int, default=1)
+    parser.add_argument("-b", "--batchsize", type=int, default=50)
+    parser.add_argument("-n", "--numworkers", type=int, default=3)
+    parser.add_argument("-v", dest="headless", action='store_false')
+    parser.set_defaults(headless=True)
     args = parser.parse_args()
-
-    asyncio.run(main(**args.__dict__))
+    
+    scr = Scraper(**args.__dict__)
+    asyncio.run(scr.scrape())
