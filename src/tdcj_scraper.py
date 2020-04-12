@@ -1,7 +1,7 @@
 from selenium.webdriver import Chrome
 from selenium.webdriver.chrome.options import Options
 from pymongo import MongoClient
-import time, json, os, sys, asyncio
+import time, json, os, sys, asyncio, signal
 import numpy as np
 import pandas as pd
 from selenium.common.exceptions import NoSuchElementException, WebDriverException
@@ -26,14 +26,6 @@ class Scraper:
         self.batchsize = batchsize 
         self.q = asyncio.Queue()
         self.workers = [ScraperWorker(self.q, self.db, headless, workersleeptime, pmode) for i in range(numworkers)]
-
-    async def scrape(self):
-        workloops = [asyncio.create_task(w.work()) for w in self.workers]
-        await self.tailmanager()
-        await asyncio.gather(*workloops)
-
-        for wloop in workloops:
-            wloop.cancel()
 
     async def tailmanager(self):
         """
@@ -199,6 +191,37 @@ class ScraperWorker:
             await self.store_idata(idata)
             self.q.task_done()
 
+def main(args):
+    loop = asyncio.get_event_loop()
+    signals = (signal.SIGHUP, signal.SIGTERM, signal.SIGINT)
+    for s in signals:
+        loop.add_signal_handler(
+            s, lambda s=s: asyncio.create_task(shutdown(loop, signal=s)))
+        loop.set_exception_handler(handle_exception)
+    
+    scr = Scraper(**args)
+    try: 
+        loop.create_task(scr.tailmanager())
+        [loop.create_task(w.work()) for w in scr.workers]
+        loop.run_forever()
+    finally:
+        loop.close()
+
+def handle_exception(loop, context):
+    msg = context.get('exception', context['message'])
+    print(f"Caught exception: {msg}")
+    asyncio.create_task(shutdown(loop))
+
+async def shutdown(loop, signal=None):
+    if signal:
+        print(f'Received exit signal {signal.name}...')
+    tasks = [t for t in asyncio.all_tasks() if t is not
+             asyncio.current_task()]
+    [task.cancel() for task in tasks]
+    await asyncio.gather(*tasks, return_exceptions=True)
+    loop.stop() 
+
+
 if __name__ == "__main__":
     import argparse
 
@@ -212,5 +235,4 @@ if __name__ == "__main__":
     parser.set_defaults(headless=True)
     args = parser.parse_args()
     
-    scr = Scraper(**args.__dict__)
-    asyncio.run(scr.scrape())
+    main(args.__dict__)
