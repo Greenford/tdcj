@@ -1,31 +1,38 @@
 from selenium.webdriver import Chrome
 from selenium.webdriver.chrome.options import Options
 from pymongo import MongoClient
-import time, json, os, sys, asyncio, signal
+import time, json, os, asyncio, signal
 import numpy as np
 import pandas as pd
 from selenium.common.exceptions import NoSuchElementException, WebDriverException
 from pymongo.errors import DuplicateKeyError
 from datetime import datetime
 
+
 class Scraper:
-    def __init__(self, headless, workersleeptime, mgrsleeptime, pmode, numworkers, batchsize):
+    def __init__(
+        self, headless, workersleeptime, mgrsleeptime, pmode, numworkers, batchsize
+    ):
         """
         Constructs the scraper: starts a webdriver instance 
         and connects to the mongoDB
 
         Args:
             headless (bool): controlling if the webdriver runs
-            sleeptime (float): worker sleep time in seconds
+            workersleeptime (float): worker sleep time in seconds
+            mgrsleeptime (float): manager sleep time in seconds
             pmode (int): print mode. Higher the number, the more is printed
+            numworkers (int): number of workers to initiate
+            batchsize (int): number of tdcj numbers for manager to load at a time
         """
-        # TODO headless?
         self.db = MongoClient("localhost", 27017).tdcj
         self.mgrsleeptime = mgrsleeptime
         self.pmode = pmode
-        self.batchsize = batchsize 
+        self.batchsize = batchsize
         self.q = asyncio.Queue()
-        self.workers = [ScraperWorker(self.q, self.db, headless, workersleeptime, pmode) for i in range(numworkers)]
+        self.workers = [
+            ScraperWorker(self.q, self.db, headless, workersleeptime, pmode)
+        ] * numworkers
 
     async def tailmanager(self):
         """
@@ -52,7 +59,7 @@ class Scraper:
         Populates the queue with potential recently-assigned tdcj numbers.
         """
         pass
-    
+
     async def recidivismMGR(self):
         """
         Populates the queue with confirmed unassigned tdcj numbers.
@@ -65,12 +72,15 @@ class Scraper:
         """
         pass
 
-class ScraperWorker: 
+
+class ScraperWorker:
     def __init__(self, q, db, headless, sleeptime, pmode):
         """
         Constructs the worker with own webdriver. 
 
         Args:
+            q (asyncio.Queue): queue to contain scraping tasks
+            db (pymongo.database.Database): relevant database to write to
             headless (bool): controlling if the webdriver runs
             sleeptime (float): worker sleep time in seconds
             pmode (int): print mode. Higher the number, the more is printed
@@ -78,7 +88,7 @@ class ScraperWorker:
         wd_path = f"{os.getcwd()}/src/chromedriver"
         opt = Options()
         opt.headless = headless
-        
+
         self.driver = Chrome(executable_path=wd_path, options=opt)
         self.db = db
         self.pmode = pmode
@@ -152,7 +162,6 @@ class ScraperWorker:
 
         Args: 
             idata (dict or int): int if no data for tdch number, dict if otherwise
-            print_mode (int): how much to print. The higher the number, the more printed.
         
         Returns: None, but inserts into inmates or unassigned.
         """
@@ -172,16 +181,13 @@ class ScraperWorker:
         except DuplicateKeyError:
             if self.pmode >= 1:
                 if type(idata) == dict:
-                    idata = idata['_id']
+                    idata = idata["_id"]
                 print(f"Duplicate tdcj number ignored: {idata}")
 
     async def work(self):
         """
         Worker co-routine for scraping. Scrapes tdcj numbers from queue 
         populated by manager.
-
-        Args:
-            q (asyncio.Queue): tdcj numbers to scrape
 
         Returns: None. Ends when the queue is empty.
         """
@@ -191,35 +197,58 @@ class ScraperWorker:
             await self.store_idata(idata)
             self.q.task_done()
 
+
 def main(args):
+    """
+    Sets up async environment and runs the scraper. 
+
+    Args:
+        args (dict): parameters for Scraper()
+    """
     loop = asyncio.get_event_loop()
     signals = (signal.SIGHUP, signal.SIGTERM, signal.SIGINT)
     for s in signals:
         loop.add_signal_handler(
-            s, lambda s=s: asyncio.create_task(shutdown(loop, signal=s)))
+            s, lambda s=s: asyncio.create_task(shutdown(loop, signal=s))
+        )
         loop.set_exception_handler(handle_exception)
-    
+
     scr = Scraper(**args)
-    try: 
+    try:
         loop.create_task(scr.tailmanager())
         [loop.create_task(w.work()) for w in scr.workers]
         loop.run_forever()
     finally:
         loop.close()
 
+
 def handle_exception(loop, context):
-    msg = context.get('exception', context['message'])
+    """
+    Simple async exception handler that just prints the exception.
+
+    Args:
+        loop (asyncio event loop): event loop
+        context (dict): asyncio error context 
+    """
+    msg = context.get("exception", context["message"])
     print(f"Caught exception: {msg}")
     asyncio.create_task(shutdown(loop))
 
+
 async def shutdown(loop, signal=None):
+    """
+    Defines shutdown behavior for the event loop.
+
+    Args:
+        loop (asyncio event loop): event loop
+        signal: signal received.
+    """
     if signal:
-        print(f'Received exit signal {signal.name}...')
-    tasks = [t for t in asyncio.all_tasks() if t is not
-             asyncio.current_task()]
+        print(f"Received exit signal {signal.name}...")
+    tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
     [task.cancel() for task in tasks]
     await asyncio.gather(*tasks, return_exceptions=True)
-    loop.stop() 
+    loop.stop()
 
 
 if __name__ == "__main__":
@@ -231,8 +260,8 @@ if __name__ == "__main__":
     parser.add_argument("-p", "--pmode", type=int, default=1)
     parser.add_argument("-b", "--batchsize", type=int, default=50)
     parser.add_argument("-n", "--numworkers", type=int, default=3)
-    parser.add_argument("-v", dest="headless", action='store_false')
+    parser.add_argument("-v", dest="headless", action="store_false")
     parser.set_defaults(headless=True)
     args = parser.parse_args()
-    
+
     main(args.__dict__)
