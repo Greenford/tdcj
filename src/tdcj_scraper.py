@@ -1,12 +1,16 @@
 from selenium.webdriver import Chrome
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.by import By
+from selenium.common.exceptions import NoSuchElementException, WebDriverException
 from pymongo import MongoClient
+from pymongo.errors import DuplicateKeyError
 import time, json, os, asyncio, signal
 import numpy as np
 import pandas as pd
-from selenium.common.exceptions import NoSuchElementException, WebDriverException
-from pymongo.errors import DuplicateKeyError
 from datetime import datetime
+
 
 
 class Scraper:
@@ -32,7 +36,7 @@ class Scraper:
         self.q = asyncio.Queue()
         self.workers = [
             ScraperWorker(self.q, self.db, headless, workersleeptime, pmode)
-        ] * numworkers
+        for i in range(numworkers)]
 
     async def tailmanager(self):
         """
@@ -44,6 +48,8 @@ class Scraper:
             if self.q.qsize() < self.batchsize:
                 for i in range(tailmax, tailmax - self.batchsize, -1):
                     self.q.put_nowait(i)
+                if self.pmode >= 1:
+                    print(f'Added tail tasks {tailmax}..{tailmax-self.batchsize}')
                 tailmax -= self.batchsize
                 self.db.admin.update_one({"_id": "tail"}, {"$set": {"value": tailmax}})
             await asyncio.sleep(self.mgrsleeptime)
@@ -112,24 +118,26 @@ class ScraperWorker:
         # the form wants an 8-digit number padded on the left with 0s
         qstring = str(tdcjnum)
         qstring = "".join(["0"] * (8 - len(qstring))) + qstring
-
+        
+        # wait for field to load
+        await self.wait_until_present(self.sleeptime, By.NAME, 'tdcj') 
         # type qstring and hit search
         tdcj_num_field = self.driver.find_element_by_name("tdcj")
         tdcj_num_field.send_keys(qstring)
         self.driver.find_element_by_name("btnSearch").click()
         await asyncio.sleep(self.sleeptime)
-
+        await self.wait_until_present(self.sleeptime, By.ID, 'content_right')
         try:
             self.driver.find_element_by_class_name(
                 "tdcj_table"
             ).find_element_by_tag_name("a").click()
 
         # this happens for unassigned tdcj numbers...
-        # or TODO for if the page has loaded too quickly
         except NoSuchElementException:
             return tdcjnum
-        await asyncio.sleep(self.sleeptime)
 
+        await asyncio.sleep(self.sleeptime)
+        await self.wait_until_present(self.sleeptime, By.ID, 'content_right')
         # we found an inmate!
         # get admin data into a dict
         entry = dict()
@@ -156,6 +164,19 @@ class ScraperWorker:
         entry["_id"] = entry.pop("TDCJ Number")
         return entry
 
+    async def wait_until_present(self, timeout, by, label):
+        """
+        Convenience method for waiting until an element is present.
+
+        Args:
+            timeout (float): time to wait in seconds
+            by (selenium.webdriver..by): selector type
+            label (str): label of element
+        """
+        WebDriverWait(self.driver, timeout).until(
+            EC.presence_of_element_located((by, label))
+        )
+
     async def store_idata(self, idata):
         """
         Asyncronously inserts the scraped data of an inmate into the mongodb.
@@ -169,17 +190,22 @@ class ScraperWorker:
             # for invalid tdcj numbers
             if type(idata) == int:
                 self.db.unassigned.insert_one({"_id": idata})
-                if self.pmode >= 2:
+                if self.pmode >= 3:
                     print(f"{idata} added to unassigned.")
             # for valid tdcj numbers
             else:
                 self.db.inmates.insert_one(idata)
-                if self.pmode >= 2:
+                if self.pmode >= 3:
                     print(f"{idata['_id']} added to inmates")
 
         # TDCJ number already in mongo
         except DuplicateKeyError:
-            if self.pmode >= 1:
+            if self.pmode >= 2:
+
+                # TODO need split behavior for cases:
+                # 1. tdcj number is valid but already in unassigned collection (reincarcerated)
+                # 2. tdcj number is valid but already in inmates collection (update)
+                # 3. tdcj number is invalid but in inmates collection (release)
                 if type(idata) == dict:
                     idata = idata["_id"]
                 print(f"Duplicate tdcj number ignored: {idata}")
@@ -230,9 +256,18 @@ def handle_exception(loop, context):
         loop (asyncio event loop): event loop
         context (dict): asyncio error context 
     """
-    msg = context.get("exception", context["message"])
-    print(f"Caught exception: {msg}")
-    asyncio.create_task(shutdown(loop))
+    # context doesn't always have an exception
+    e = context.get("exception", context)
+    if not isinstance(e, Exception):
+        import pprint
+        print(f'Caught exception without object:')
+        pprint.pprint(e)
+        asyncio.create_task(shutdown(loop))
+    else:
+        asyncio.create_task(shutdown(loop))
+        print('Caught exception:')
+        raise e
+
 
 
 async def shutdown(loop, signal=None):
@@ -245,6 +280,7 @@ async def shutdown(loop, signal=None):
     """
     if signal:
         print(f"Received exit signal {signal.name}...")
+    print('Shutting down...')
     tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
     [task.cancel() for task in tasks]
     await asyncio.gather(*tasks, return_exceptions=True)
@@ -255,7 +291,7 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-w", "--workersleeptime", type=float, default=1.5)
+    parser.add_argument("-w", "--workersleeptime", type=float, default=1.0)
     parser.add_argument("-m", "--mgrsleeptime", type=float, default=5)
     parser.add_argument("-p", "--pmode", type=int, default=1)
     parser.add_argument("-b", "--batchsize", type=int, default=50)
