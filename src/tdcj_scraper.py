@@ -3,14 +3,17 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
-from selenium.common.exceptions import NoSuchElementException, WebDriverException
+from selenium.common.exceptions import (
+    NoSuchElementException,
+    WebDriverException,
+    TimeoutException,
+)
 from pymongo import MongoClient
 from pymongo.errors import DuplicateKeyError
 import time, json, os, asyncio, signal
 import numpy as np
 import pandas as pd
 from datetime import datetime
-
 
 
 class Scraper:
@@ -36,7 +39,8 @@ class Scraper:
         self.q = asyncio.Queue()
         self.workers = [
             ScraperWorker(self.q, self.db, headless, workersleeptime, pmode)
-        for i in range(numworkers)]
+            for i in range(numworkers)
+        ]
 
     async def tailmanager(self):
         """
@@ -49,7 +53,7 @@ class Scraper:
                 for i in range(tailmax, tailmax - self.batchsize, -1):
                     self.q.put_nowait(i)
                 if self.pmode >= 1:
-                    print(f'Added tail tasks {tailmax}..{tailmax-self.batchsize}')
+                    print(f"Added tail tasks {tailmax}..{tailmax-self.batchsize}")
                 tailmax -= self.batchsize
                 self.db.admin.update_one({"_id": "tail"}, {"$set": {"value": tailmax}})
             await asyncio.sleep(self.mgrsleeptime)
@@ -99,6 +103,7 @@ class ScraperWorker:
         self.db = db
         self.pmode = pmode
         self.sleeptime = sleeptime
+        self.sleepmult = 1
         self.q = q
 
     async def scrape_inmate(self, tdcjnum):
@@ -112,21 +117,7 @@ class ScraperWorker:
             a dictionary of inmate information if the number is valid
             else the value False
         """
-        self.driver.get("https://offender.tdcj.texas.gov/OffenderSearch/start")
-        await asyncio.sleep(self.sleeptime)
-
-        # the form wants an 8-digit number padded on the left with 0s
-        qstring = str(tdcjnum)
-        qstring = "".join(["0"] * (8 - len(qstring))) + qstring
-        
-        # wait for field to load
-        await self.wait_until_present(self.sleeptime, By.NAME, 'tdcj') 
-        # type qstring and hit search
-        tdcj_num_field = self.driver.find_element_by_name("tdcj")
-        tdcj_num_field.send_keys(qstring)
-        self.driver.find_element_by_name("btnSearch").click()
-        await asyncio.sleep(self.sleeptime)
-        await self.wait_until_present(self.sleeptime, By.ID, 'content_right')
+        await self.search_by_number(tdcjnum)
         try:
             self.driver.find_element_by_class_name(
                 "tdcj_table"
@@ -137,7 +128,7 @@ class ScraperWorker:
             return tdcjnum
 
         await asyncio.sleep(self.sleeptime)
-        await self.wait_until_present(self.sleeptime, By.ID, 'content_right')
+        await self.wait_until_present(By.ID, "content_right")
         # we found an inmate!
         # get admin data into a dict
         entry = dict()
@@ -164,18 +155,46 @@ class ScraperWorker:
         entry["_id"] = entry.pop("TDCJ Number")
         return entry
 
-    async def wait_until_present(self, timeout, by, label):
+    async def search_by_number(self, tdcjnum):
         """
-        Convenience method for waiting until an element is present.
+        Searches the tdcj website for a possible inmate number.
+
+        Args:
+            tdcjnum (int): possible tdcj number
+        """
+        self.driver.get("https://offender.tdcj.texas.gov/OffenderSearch/start")
+        # the form wants an 8-digit number padded on the left with 0s
+        qstring = str(tdcjnum)
+        qstring = "".join(["0"] * (8 - len(qstring))) + qstring
+        await asyncio.sleep(self.sleeptime)
+        await self.wait_until_present(By.NAME, "tdcj")
+
+        # type qstring and hit search
+        tdcj_num_field = self.driver.find_element_by_name("tdcj")
+        tdcj_num_field.send_keys(qstring)
+        self.driver.find_element_by_name("btnSearch").click()
+        await asyncio.sleep(self.sleeptime)
+        await self.wait_until_present(By.ID, "content_right")
+
+    async def wait_until_present(self, by, label):
+        """
+        Convenience method for waiting until an element is present. Also makes 
+        waittime for elements elastic for changing network latency.
 
         Args:
             timeout (float): time to wait in seconds
             by (selenium.webdriver..by): selector type
             label (str): label of element
         """
-        WebDriverWait(self.driver, timeout).until(
-            EC.presence_of_element_located((by, label))
-        )
+        try:
+            WebDriverWait(self.driver, self.sleeptime * self.sleepmult).until(
+                EC.presence_of_element_located((by, label))
+            )
+            if self.sleepmult > 1:
+                self.sleepmult -= 0.1
+        except TimeoutException:
+            self.sleepmult += 0.5
+            await self.wait_until_present(by, label)
 
     async def store_idata(self, idata):
         """
@@ -260,14 +279,14 @@ def handle_exception(loop, context):
     e = context.get("exception", context)
     if not isinstance(e, Exception):
         import pprint
-        print(f'Caught exception without object:')
+
+        print(f"Caught exception without object:")
         pprint.pprint(e)
         asyncio.create_task(shutdown(loop))
     else:
         asyncio.create_task(shutdown(loop))
-        print('Caught exception:')
+        print("Caught exception:")
         raise e
-
 
 
 async def shutdown(loop, signal=None):
@@ -280,7 +299,7 @@ async def shutdown(loop, signal=None):
     """
     if signal:
         print(f"Received exit signal {signal.name}...")
-    print('Shutting down...')
+    print(datetime.now().strftime("%Y%m%d_%H%M"), "Shutting down...")
     tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
     [task.cancel() for task in tasks]
     await asyncio.gather(*tasks, return_exceptions=True)
