@@ -155,12 +155,13 @@ class ScraperWorker:
         entry["_id"] = entry.pop("TDCJ Number")
         return entry
 
-    async def search_by_number(self, tdcjnum):
+    async def search_by_number(self, tdcjnum, retry=False):
         """
         Searches the tdcj website for a possible inmate number.
 
         Args:
             tdcjnum (int): possible tdcj number
+            retry (bool): for recursive usage; True if call has failed once
         """
         self.driver.get("https://offender.tdcj.texas.gov/OffenderSearch/start")
         # the form wants an 8-digit number padded on the left with 0s
@@ -174,7 +175,15 @@ class ScraperWorker:
         tdcj_num_field.send_keys(qstring)
         self.driver.find_element_by_name("btnSearch").click()
         await asyncio.sleep(self.sleeptime)
-        await self.wait_until_present(By.ID, "content_right")
+
+        #retries the call once if it fails
+        try:
+            await self.wait_until_present(By.ID, "content_right")
+        except TimeoutException as e:
+            if retry:
+                raise e
+            else:
+                self.search_by_number(tdcjnum, True)
 
     async def wait_until_present(self, by, label):
         """
@@ -190,11 +199,17 @@ class ScraperWorker:
             WebDriverWait(self.driver, self.sleeptime * self.sleepmult).until(
                 EC.presence_of_element_located((by, label))
             )
+            #decrease wait time
             if self.sleepmult > 1:
                 self.sleepmult -= 0.1
-        except TimeoutException:
-            self.sleepmult += 0.5
-            await self.wait_until_present(by, label)
+        except TimeoutException as e:
+            #wait longer times
+            if self.sleepmult < 3:
+                self.sleepmult += 1
+                print(f'Sleeptime increased to {self.sleepmult * self.sleeptime} seconds.')
+                await self.wait_until_present(by, label)
+            else:
+                raise e
 
     async def store_idata(self, idata):
         """
