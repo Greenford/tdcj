@@ -8,6 +8,7 @@ from selenium.common.exceptions import (
     WebDriverException,
     TimeoutException,
 )
+import requests
 from pymongo import MongoClient
 from pymongo.errors import DuplicateKeyError
 import time, json, os, asyncio, signal
@@ -183,7 +184,7 @@ class ScraperWorker:
             if retry:
                 raise e
             else:
-                self.search_by_number(tdcjnum, True)
+                await self.search_by_number(tdcjnum, True)
 
     async def wait_until_present(self, by, label):
         """
@@ -253,10 +254,26 @@ class ScraperWorker:
         """
         while not self.q.empty():
             tdcjnum = await self.q.get()
-            idata = await self.scrape_inmate(tdcjnum)
-            await self.store_idata(idata)
-            self.q.task_done()
+            try: 
+                idata = await self.scrape_inmate(tdcjnum)
+                await self.store_idata(idata)
+                self.q.task_done()
+            
+            except TimeoutException:
+                await self.q.put(tdcjnum)
+                wait_until_connected()
 
+def wait_until_connected():
+    """
+    Waits for 5 mins at a time for a connection to the TDCJ offender 
+    search form. Exits when a connection is detected.
+    """
+    while True: 
+        try: 
+            requests.get('https://offender.tdcj.texas.gov/OffenderSearch/start').status_code
+            break
+        except requests.exceptions.RequestException:
+            time.sleep(300)
 
 def main(args):
     """
@@ -319,6 +336,8 @@ async def shutdown(loop, signal=None):
     [task.cancel() for task in tasks]
     await asyncio.gather(*tasks, return_exceptions=True)
     loop.stop()
+
+
 
 
 if __name__ == "__main__":
