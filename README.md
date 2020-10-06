@@ -29,13 +29,13 @@ As of January 2019 I've only scraped 107k valid TDCJ numbers and expect at least
 Data was then migrated to a PostreSQL database and then analyzed using a jupyter notbook with Pandas and Scipy. 
 
 ## Exploratory Data Analysis
-A histogram of the races below shows that the vast plurality of inmates are either white, hispanic, and black in order of population within TDCJ. 
+The below histogram of race shows that most inmates are either Black, Hispanic, or White. 
 
 ![Image of Histogram of TDCJ Population by Race](https://github.com/Greenford/tdcj/blob/master/images/racedist.png)
 
 A separate grouping by crime was as follows: 
 
-I chose to run analysis on only the white, black, and hispanic populations, the next higest incarcerated being asian and likely not having enough data from while to draw conclusions. This way, I chose to test 3 main hypotheses back to back using the possible 2-combinations of those race categories as the basis: B-W difference, B-H difference, and H-W difference. 
+I chose to run analysis on only the white, black, and hispanic populations, the next higest incarcerated being Asian and likely not having enough data from while to draw conclusions. This way, I chose to test 3 main hypotheses back to back using the possible 2-combinations of those race categories as the basis: B-W difference, B-H difference, and H-W difference. 
 
 ## Data Transforms
 I applied two data transforms:
