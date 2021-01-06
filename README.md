@@ -26,7 +26,7 @@ Starting with personal experience from my time at IBP, I believed TDCJ numbers t
 As of January 2019 I've only scraped 107k valid TDCJ numbers and expect at least 50k more numbers to be in the tail. Finding them will be slower than normal, as they are significanly more spread out and being those few who were sentenced to long stays. 
 
 ### Analysis
-Data was then migrated to a PostreSQL database and then analyzed using a jupyter notbook with Pandas and Scipy. 
+Data was then migrated to a PostgreSQL database and then analyzed using a jupyter notbook with Pandas and Scipy. 
 
 ## Exploratory Data Analysis
 The below histogram of race shows that most inmates are either Black, Hispanic, or White. 
